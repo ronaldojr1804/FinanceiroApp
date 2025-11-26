@@ -1,0 +1,88 @@
+@typeparam TItem
+@using Microsoft.AspNetCore.Components
+
+@if (IsVisible)
+{
+    <div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Background backdrop -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <!-- Modal panel -->
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">@Title</h3>
+                                
+                                <!-- Search Input -->
+                                <div class="mt-4">
+                                    <input type="text" 
+                                           @bind="SearchTerm" 
+                                           @bind:event="oninput"
+                                           placeholder="Buscar..." 
+                                           class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 pl-3">
+                                </div>
+
+                                <!-- List -->
+                                <div class="mt-4 max-h-60 overflow-y-auto">
+                                    @if (FilteredItems.Any())
+                                    {
+                                        <ul role="list" class="divide-y divide-gray-100">
+                                            @foreach (var item in FilteredItems)
+                                            {
+                                                <li class="flex justify-between gap-x-6 py-3 hover:bg-gray-50 cursor-pointer px-2 rounded-md" @onclick="() => SelectItem(item)">
+                                                    @ItemTemplate(item)
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-sm text-gray-500 py-4 text-center">Nenhum item encontrado.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto" @onclick="OnClose">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Selecionar";
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>();
+    [Parameter] public EventCallback<TItem> OnSelected { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment<TItem> ItemTemplate { get; set; }
+    [Parameter] public Func<TItem, string, bool> Filter { get; set; }
+
+    private string SearchTerm { get; set; } = "";
+
+    private IEnumerable<TItem> FilteredItems
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(SearchTerm))
+                return Items;
+
+            if (Filter == null)
+                return Items;
+
+            return Items.Where(i => Filter(i, SearchTerm));
+        }
+    }
+
+    private async Task SelectItem(TItem item)
+    {
+        await OnSelected.InvokeAsync(item);
+        SearchTerm = ""; // Reset search on select
+    }
+}

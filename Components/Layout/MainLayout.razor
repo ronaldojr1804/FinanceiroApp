@@ -1,0 +1,27 @@
+﻿@inherits LayoutComponentBase
+
+<div class="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
+    <!-- Sidebar -->
+    <div class="hidden md:flex md:flex-shrink-0">
+        <div class="flex flex-col w-64">
+            <NavMenu />
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex flex-col w-0 flex-1 overflow-hidden">
+        <main class="flex-1 relative z-0 overflow-y-auto focus:outline-none">
+            <div class="py-6">
+                <div class="w-full mx-auto px-4 sm:px-6 md:px-8">
+                    @Body
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet class="hidden fixed bottom-0 left-0 right-0 px-4 py-3 bg-red-100 border-t border-red-400 text-red-700">
+    An unhandled error has occurred.
+    <a href="." class="underline font-bold">Reload</a>
+    <span class="dismiss cursor-pointer float-right font-bold">🗙</span>
+</div>

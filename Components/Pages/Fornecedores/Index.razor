@@ -1,0 +1,122 @@
+@page "/fornecedores"
+@rendermode InteractiveServer
+@using FinanceiroApp.Models
+@using FinanceiroApp.Services
+@inject FornecedorService FornecedorService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="w-full mx-auto px-4 sm:px-6 md:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">Fornecedores</h1>
+            <p class="mt-2 text-sm text-gray-700">Gerencie seus fornecedores e clientes.</p>
+        </div>
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <button @onclick="NovoFornecedor" class="block rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                <div class="flex items-center">
+                    <svg class="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                    </svg>
+                    Novo Fornecedor
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <input type="text" @bind="termoBusca" @bind:event="oninput" placeholder="Buscar por Razão Social ou CNPJ..." class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+    </div>
+
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:pl-6">Razão Social</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CNPJ</th>
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                                    <span class="sr-only">Ações</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            @if (fornecedores is null)
+                            {
+                                <tr>
+                                    <td colspan="3" class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">Carregando...</td>
+                                </tr>
+                            }
+                            else if (!fornecedoresFiltrados.Any())
+                            {
+                                <tr>
+                                    <td colspan="3" class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">Nenhum fornecedor encontrado.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var f in fornecedoresFiltrados)
+                                {
+                                    <tr>
+                                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">@f.RazaoSocial</td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@f.CNPJ</td>
+                                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                            <button @onclick="() => Editar(f.Id)" class="text-blue-600 hover:text-blue-900 mr-4">Editar</button>
+                                            <button @onclick="() => Excluir(f.Id)" class="text-red-600 hover:text-red-900">Excluir</button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Fornecedor>? fornecedores;
+    private string termoBusca = "";
+
+    private IEnumerable<Fornecedor> fornecedoresFiltrados =>
+        fornecedores is null
+            ? Enumerable.Empty<Fornecedor>()
+            : string.IsNullOrWhiteSpace(termoBusca)
+                ? fornecedores
+                : fornecedores.Where(f =>
+                    f.RazaoSocial.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) ||
+                    f.CNPJ.Contains(termoBusca, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarFornecedores();
+    }
+
+    private async Task CarregarFornecedores()
+    {
+        fornecedores = await FornecedorService.ObterTodosAsync();
+    }
+
+    private void NovoFornecedor()
+    {
+        Nav.NavigateTo("/fornecedores/novo");
+    }
+
+    private void Editar(int id)
+    {
+        Nav.NavigateTo($"/fornecedores/editar/{id}");
+    }
+
+    private async Task Excluir(int id)
+    {
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "Tem certeza que deseja excluir este fornecedor?");
+        if (confirmado)
+        {
+            await FornecedorService.ExcluirAsync(id);
+            await CarregarFornecedores();
+        }
+    }
+}

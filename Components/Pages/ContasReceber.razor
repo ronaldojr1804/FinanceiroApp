@@ -1,0 +1,171 @@
+@page "/contas-receber"
+@rendermode InteractiveServer
+@using FinanceiroApp.Models
+@using FinanceiroApp.Services
+@inject LancamentoService LancamentoService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">Contas a Receber</h1>
+            <p class="mt-2 text-sm text-gray-700">Gerencie suas contas a receber.</p>
+        </div>
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <button @onclick="NovoLancamento" class="block rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                <div class="flex items-center">
+                    <svg class="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                    </svg>
+                    Novo Lançamento
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="mt-6 bg-white p-4 shadow rounded-lg">
+        <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div class="sm:col-span-2">
+                <label for="dataInicial" class="block text-sm font-medium text-gray-700">Data Inicial</label>
+                <div class="mt-1">
+                    <input type="date" id="dataInicial" @bind="dataInicial" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                </div>
+            </div>
+            <div class="sm:col-span-2">
+                <label for="dataFinal" class="block text-sm font-medium text-gray-700">Data Final</label>
+                <div class="mt-1">
+                    <input type="date" id="dataFinal" @bind="dataFinal" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                </div>
+            </div>
+            <div class="sm:col-span-2">
+                <label for="busca" class="block text-sm font-medium text-gray-700">Buscar</label>
+                <div class="mt-1">
+                    <input type="text" id="busca" @bind="termoBusca" @bind:event="oninput" placeholder="Descrição ou Cliente" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sm:pl-6">Descrição</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimento</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                                    <span class="sr-only">Ações</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            @if (lancamentosFiltrados is null)
+                            {
+                                <tr>
+                                    <td colspan="6" class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">Carregando...</td>
+                                </tr>
+                            }
+                            else if (!lancamentosFiltrados.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">Nenhum lançamento encontrado.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var l in lancamentosFiltrados)
+                                {
+                                    <tr>
+                                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">@l.Descricao</td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                            @(l.Fornecedor != null ? l.Fornecedor.RazaoSocial : l.Pessoa)
+                                        </td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@l.DataVencimento.ToShortDateString()</td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@l.Valor.ToString("C")</td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(l.Status == "Pago" ? "bg-green-100 text-green-800" : l.Status == "Atrasado" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800")">
+                                                @l.Status
+                                            </span>
+                                        </td>
+                                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                            <button @onclick="() => Editar(l.Id)" class="text-blue-600 hover:text-blue-900 mr-4">Editar</button>
+                                            @if (l.Status != "Pago")
+                                            {
+                                                <button @onclick="() => MarcarPago(l.Id)" class="text-emerald-600 hover:text-emerald-900 mr-4">Receber</button>
+                                            }
+                                            <button @onclick="() => Excluir(l.Id)" class="text-red-600 hover:text-red-900">Excluir</button>
+                                        </td>
+                                    </tr>
+                                }
+                                <!-- Linha de Total -->
+                                <tr class="bg-gray-50 font-bold">
+                                    <td colspan="3" class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900 sm:pl-6 text-right">Total:</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">@lancamentosFiltrados.Sum(l => l.Valor).ToString("C")</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Lancamento>? lancamentos;
+    private DateTime dataInicial = DateTime.Today;
+    private DateTime dataFinal = DateTime.Today.AddDays(30);
+    private string termoBusca = "";
+
+    private IEnumerable<Lancamento>? lancamentosFiltrados =>
+        lancamentos?
+            .Where(l => l.DataVencimento >= dataInicial && l.DataVencimento <= dataFinal)
+            .Where(l => string.IsNullOrEmpty(termoBusca) || 
+                        l.Descricao.Contains(termoBusca, StringComparison.OrdinalIgnoreCase) || 
+                        (l.Fornecedor != null && l.Fornecedor.RazaoSocial.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)) ||
+                        (l.Pessoa != null && l.Pessoa.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarLancamentos();
+    }
+
+    private async Task CarregarLancamentos()
+    {
+        lancamentos = await LancamentoService.ObterPorTipoAsync("Receber");
+    }
+
+    private void NovoLancamento()
+    {
+        Nav.NavigateTo("/lancamento/Receber");
+    }
+
+    private void Editar(int id)
+    {
+        Nav.NavigateTo($"/lancamento/Receber/{id}");
+    }
+
+    private async Task MarcarPago(int id)
+    {
+        await LancamentoService.MarcarComoPagoAsync(id);
+        await CarregarLancamentos();
+    }
+
+    private async Task Excluir(int id)
+    {
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "Tem certeza que deseja excluir este lançamento?");
+        if (confirmado)
+        {
+            await LancamentoService.ExcluirAsync(id);
+            await CarregarLancamentos();
+        }
+    }
+}

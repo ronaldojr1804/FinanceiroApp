@@ -1,0 +1,103 @@
+@page "/fornecedores/novo"
+@page "/fornecedores/editar/{Id:int}"
+@rendermode InteractiveServer
+@using FinanceiroApp.Models
+@using FinanceiroApp.Services
+@inject FornecedorService FornecedorService
+@inject NavigationManager Nav
+
+<div class="w-full mx-auto py-4 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                @titulo
+            </h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                Preencha os dados do fornecedor abaixo.
+            </p>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+            @if (fornecedor is not null)
+            {
+                <EditForm Model="fornecedor" OnValidSubmit="Salvar">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="rounded-md bg-red-50 p-4 mb-6 text-sm text-red-700" />
+
+                    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                        <!-- Razão Social -->
+                        <div class="sm:col-span-4">
+                            <label for="razaoSocial" class="block text-sm font-medium text-gray-700">Razão Social</label>
+                            <div class="mt-1">
+                                <input type="text" id="razaoSocial" @bind="fornecedor.RazaoSocial" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            </div>
+                        </div>
+
+                        <!-- CNPJ -->
+                        <div class="sm:col-span-2">
+                            <label for="cnpj" class="block text-sm font-medium text-gray-700">CNPJ</label>
+                            <div class="mt-1">
+                                <input type="text" id="cnpj" @bind="fornecedor.CNPJ" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-5">
+                        <div class="flex justify-end">
+                            <button type="button" @onclick="Voltar" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Salvar
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <p class="text-gray-500">Carregando...</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private Fornecedor? fornecedor;
+    private string titulo = "Novo Fornecedor";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue && Id.Value > 0)
+        {
+            titulo = "Editar Fornecedor";
+            fornecedor = await FornecedorService.ObterPorIdAsync(Id.Value);
+            if (fornecedor is null)
+            {
+                Voltar();
+                return;
+            }
+        }
+        else
+        {
+            titulo = "Novo Fornecedor";
+            fornecedor = new Fornecedor();
+        }
+    }
+
+    private async Task Salvar()
+    {
+        if (fornecedor is null) return;
+
+        await FornecedorService.SalvarAsync(fornecedor);
+        Voltar();
+    }
+
+    private void Voltar()
+    {
+        Nav.NavigateTo("/fornecedores");
+    }
+}

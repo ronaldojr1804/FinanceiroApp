@@ -1,0 +1,282 @@
+@page "/lancamento/{Tipo}"
+@page "/lancamento/{Tipo}/{Id:int}"
+@rendermode InteractiveServer
+
+@using FinanceiroApp.Models
+@using FinanceiroApp.Services
+@using FinanceiroApp.Components.Shared
+@using Microsoft.AspNetCore.Components.Forms
+@inject LancamentoService LancamentoService
+@inject CategoriaService CategoriaService
+@inject FornecedorService FornecedorService
+@inject NavigationManager Nav
+
+    <div class="w-full mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    @titulo
+                </h3>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                    Preencha os dados do lançamento abaixo.
+                </p>
+            </div>
+            <div class="px-4 py-5 sm:p-6">
+                @if (lancamento is not null)
+                {
+                    <EditForm Model="lancamento" OnValidSubmit="Salvar">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="rounded-md bg-red-50 p-4 mb-6 text-sm text-red-700" />
+
+                        <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                            <!-- Tipo -->
+                            <div class="sm:col-span-3">
+                                <label for="tipo" class="block text-sm font-medium text-gray-700">Tipo</label>
+                                <div class="mt-1">
+                                    <select id="tipo" @bind="lancamento.Tipo" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                        <option value="">Selecione</option>
+                                        <option value="Pagar">Pagar</option>
+                                        <option value="Receber">Receber</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Status -->
+                            <div class="sm:col-span-3">
+                                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                                <div class="mt-1">
+                                    <select id="status" @bind="lancamento.Status" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                        <option value="Aberto">Aberto</option>
+                                        <option value="Pago">Pago</option>
+                                        <option value="Atrasado">Atrasado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Descrição -->
+                            <div class="sm:col-span-6">
+                                <label for="descricao" class="block text-sm font-medium text-gray-700">Descrição</label>
+                                <div class="mt-1">
+                                    <input type="text" id="descricao" @bind="lancamento.Descricao" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="Ex: Conta de Luz" />
+                                </div>
+                            </div>
+
+                            <!-- Fornecedor/Cliente (Modal) -->
+                            <div class="sm:col-span-6">
+                                <label class="block text-sm font-medium text-gray-700">Fornecedor / Cliente</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <div class="relative flex-grow focus-within:z-10">
+                                        <div class="block w-full rounded-none rounded-l-md border-gray-300 pl-3 py-2 sm:text-sm border text-gray-900">
+                                            @(lancamento.Fornecedor != null ? $"{lancamento.Fornecedor.RazaoSocial} ({lancamento.Fornecedor.CNPJ})" : (string.IsNullOrEmpty(lancamento.Pessoa) ? "Selecione um fornecedor..." : lancamento.Pessoa))
+                                        </div>
+                                    </div>
+                                    <button type="button" @onclick="() => mostrarModalFornecedor = true" class="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-r-md text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                        <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span>Buscar</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Data Lançamento -->
+                            <div class="sm:col-span-3">
+                                <label for="dataLancamento" class="block text-sm font-medium text-gray-700">Data Lançamento</label>
+                                <div class="mt-1">
+                                    <input type="date" id="dataLancamento" @bind="lancamento.DataLancamento" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                                </div>
+                            </div>
+
+                            <!-- Data Vencimento -->
+                            <div class="sm:col-span-3">
+                                <label for="dataVencimento" class="block text-sm font-medium text-gray-700">Data Vencimento</label>
+                                <div class="mt-1">
+                                    <input type="date" id="dataVencimento" @bind="lancamento.DataVencimento" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                                </div>
+                            </div>
+
+                            <!-- Data Pagamento -->
+                            <div class="sm:col-span-3">
+                                <label for="dataPagamento" class="block text-sm font-medium text-gray-700">Data Pagamento</label>
+                                <div class="mt-1">
+                                    <input type="date" id="dataPagamento" @bind="lancamento.DataPagamento" readonly class="bg-gray-100 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                                </div>
+                            </div>
+
+                            <!-- Valor -->
+                            <div class="sm:col-span-3">
+                                <label for="valor" class="block text-sm font-medium text-gray-700">Valor</label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">R$</span>
+                                    </div>
+                                    <input type="number" step="0.01" id="valor" @bind="lancamento.Valor" class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" placeholder="0.00" />
+                                </div>
+                            </div>
+
+                            <!-- Categoria (Modal) -->
+                            <div class="sm:col-span-3">
+                                <label class="block text-sm font-medium text-gray-700">Categoria</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <div class="relative flex-grow focus-within:z-10">
+                                        <div class="block w-full rounded-none rounded-l-md border-gray-300 pl-3 py-2 sm:text-sm border text-gray-900">
+                                            @(lancamento.Categoria != null ? lancamento.Categoria.Nome : "Selecione uma categoria...")
+                                        </div>
+                                    </div>
+                                    <button type="button" @onclick="() => mostrarModalCategoria = true" class="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-r-md text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                        <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-5">
+                            <div class="flex justify-end">
+                                <button type="button" @onclick="Voltar" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <p class="text-gray-500">Carregando...</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais -->
+    <SearchModal TItem="Fornecedor"
+                 Title="Selecionar Fornecedor"
+                 IsVisible="mostrarModalFornecedor"
+                 Items="fornecedores"
+                 OnSelected="FornecedorSelecionado"
+                 OnClose="() => mostrarModalFornecedor = false"
+                 Filter="(f, term) => f.RazaoSocial.Contains(term, StringComparison.OrdinalIgnoreCase) || f.CNPJ.Contains(term)">
+        <ItemTemplate Context="f">
+            <div class="flex flex-col">
+                <span class="font-medium text-gray-900">@f.RazaoSocial</span>
+                <span class="text-sm text-gray-500">@f.CNPJ</span>
+            </div>
+        </ItemTemplate>
+    </SearchModal>
+
+    <SearchModal TItem="Categoria"
+                 Title="Selecionar Categoria"
+                 IsVisible="mostrarModalCategoria"
+                 Items="categoriasFiltradas"
+                 OnSelected="CategoriaSelecionada"
+                 OnClose="() => mostrarModalCategoria = false"
+                 Filter="(c, term) => c.Nome.Contains(term, StringComparison.OrdinalIgnoreCase)">
+        <ItemTemplate Context="c">
+            <span class="font-medium text-gray-900">@c.Nome</span>
+        </ItemTemplate>
+    </SearchModal>
+
+@code {
+    [Parameter] public string Tipo { get; set; } = "";
+    [Parameter] public int? Id { get; set; }
+
+    private Lancamento? lancamento;
+    private List<Categoria>? categorias;
+    private List<Fornecedor>? fornecedores;
+    private string titulo = "Novo lancamento";
+
+    private bool mostrarModalFornecedor = false;
+    private bool mostrarModalCategoria = false;
+
+    private IEnumerable<Categoria> categoriasFiltradas =>
+        categorias is null || lancamento is null || string.IsNullOrEmpty(lancamento.Tipo)
+            ? Enumerable.Empty<Categoria>()
+            : categorias.Where(c => c.Tipo == lancamento.Tipo || c.Tipo == "Ambos");
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await CategoriaService.ObterTodasAsync();
+        fornecedores = await FornecedorService.ObterTodosAsync();
+
+        if (Id.HasValue && Id.Value > 0)
+        {
+            titulo = "Editar lancamento";
+            lancamento = await LancamentoService.ObterPorIdAsync(Id.Value);
+            if (lancamento is null)
+            {
+                // se nao achar, volta
+                Voltar();
+                return;
+            }
+        }
+        else
+        {
+            titulo = "Novo lancamento";
+            lancamento = new Lancamento
+            {
+                Tipo = Tipo
+            };
+        }
+    }
+
+    private void FornecedorSelecionado(Fornecedor f)
+    {
+        if (lancamento != null)
+        {
+            lancamento.Fornecedor = f;
+            lancamento.FornecedorId = f.Id;
+            lancamento.Pessoa = f.RazaoSocial; // Mantendo compatibilidade
+        }
+        mostrarModalFornecedor = false;
+    }
+
+    private void CategoriaSelecionada(Categoria c)
+    {
+        if (lancamento != null)
+        {
+            lancamento.Categoria = c;
+            lancamento.CategoriaId = c.Id;
+        }
+        mostrarModalCategoria = false;
+    }
+
+    private async Task Salvar()
+    {
+        if (lancamento is null) return;
+
+        // Lógica de Data Pagamento: Se Pago e sem data, preenche hoje. Se não Pago, limpa data.
+        if (lancamento.Status == "Pago" && lancamento.DataPagamento == null)
+        {
+            lancamento.DataPagamento = DateTime.Today;
+        }
+        else if (lancamento.Status != "Pago")
+        {
+            lancamento.DataPagamento = null;
+        }
+
+        await LancamentoService.SalvarAsync(lancamento);
+
+        if (lancamento.Tipo == "Pagar")
+            Nav.NavigateTo("/contas-pagar");
+        else if (lancamento.Tipo == "Receber")
+            Nav.NavigateTo("/contas-receber");
+        else
+            Nav.NavigateTo("/");
+    }
+
+    private void Voltar()
+    {
+        if (Tipo == "Pagar")
+            Nav.NavigateTo("/contas-pagar");
+        else if (Tipo == "Receber")
+            Nav.NavigateTo("/contas-receber");
+        else
+            Nav.NavigateTo("/");
+    }
+}
