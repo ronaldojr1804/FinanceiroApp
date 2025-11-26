@@ -61,8 +61,8 @@
     [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>();
     [Parameter] public EventCallback<TItem> OnSelected { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-    [Parameter] public RenderFragment<TItem> ItemTemplate { get; set; }
-    [Parameter] public Func<TItem, string, bool> Filter { get; set; }
+    [Parameter] public required RenderFragment<TItem> ItemTemplate { get; set; }
+    [Parameter] public required Func<TItem, string, bool> Filter { get; set; }
 
     private string SearchTerm { get; set; } = "";
 
